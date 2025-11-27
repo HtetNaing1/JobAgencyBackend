@@ -103,17 +103,27 @@ exports.getProfileById = async (req, res) => {
       });
     }
 
-    // Get courses count
-    const coursesCount = await TrainingCourse.countDocuments({
-      trainingCenterProfile: profile._id,
-      status: 'published'
-    });
+    // Get courses count and list
+    const [coursesCount, courses] = await Promise.all([
+      TrainingCourse.countDocuments({
+        trainingCenterProfile: profile._id,
+        status: 'published'
+      }),
+      TrainingCourse.find({
+        trainingCenterProfile: profile._id,
+        status: 'published'
+      })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .select('title category level duration mode price startDate rating')
+    ]);
 
     res.json({
       success: true,
       data: {
         ...profile.toObject(),
-        coursesCount
+        coursesCount,
+        courses
       }
     });
   } catch (error) {
