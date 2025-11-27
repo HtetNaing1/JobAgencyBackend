@@ -566,15 +566,18 @@ exports.getAnalytics = async (req, res) => {
       { $sort: { _id: 1 } }
     ]);
 
-    // Top job categories
+    // Top job skills
     const topCategories = await Job.aggregate([
-      { $group: { _id: '$category', count: { $sum: 1 } } },
+      { $unwind: '$requirements.skills' },
+      { $group: { _id: '$requirements.skills', count: { $sum: 1 } } },
+      { $match: { _id: { $ne: null, $ne: '' } } },
       { $sort: { count: -1 } },
       { $limit: 10 }
     ]);
 
     // Top locations
     const topLocations = await Job.aggregate([
+      { $match: { 'location.city': { $ne: null, $ne: '' } } },
       { $group: { _id: '$location.city', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 10 }
@@ -592,7 +595,8 @@ exports.getAnalytics = async (req, res) => {
 
     // Top employers by job count
     const topEmployers = await Job.aggregate([
-      { $group: { _id: '$employer', count: { $sum: 1 } } },
+      { $match: { employerProfile: { $ne: null } } },
+      { $group: { _id: '$employerProfile', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 5 },
       {
@@ -600,11 +604,11 @@ exports.getAnalytics = async (req, res) => {
           from: 'employerprofiles',
           localField: '_id',
           foreignField: '_id',
-          as: 'employer'
+          as: 'employerInfo'
         }
       },
-      { $unwind: '$employer' },
-      { $project: { companyName: '$employer.companyName', count: 1 } }
+      { $unwind: { path: '$employerInfo', preserveNullAndEmptyArrays: false } },
+      { $project: { companyName: '$employerInfo.companyName', count: 1 } }
     ]);
 
     res.status(200).json({
