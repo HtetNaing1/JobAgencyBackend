@@ -27,6 +27,7 @@ app.use('/api/recommendations', require('./routes/recommendationRoutes'));
 app.use('/api/training-centers', require('./routes/trainingCenterRoutes'));
 app.use('/api/courses', require('./routes/courseRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/bookmarks', require('./routes/bookmarkRoutes'));
 
 // Health check route
 app.get('/api/health', (req, res) => {

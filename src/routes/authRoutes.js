@@ -8,7 +8,8 @@ const {
   logout,
   forgotPassword,
   resetPassword,
-  changePassword
+  changePassword,
+  deleteAccount
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const {
@@ -52,5 +53,8 @@ router.post('/logout', protect, logout);
 router.post('/forgot-password', passwordResetLimiter, forgotPassword);
 router.post('/reset-password', passwordResetLimiter, resetPassword);
 router.put('/change-password', protect, changePassword);
+
+// Account management routes
+router.delete('/delete-account', protect, deleteAccount);
 
 module.exports = router;

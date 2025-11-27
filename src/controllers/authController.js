@@ -1,4 +1,12 @@
 const User = require('../models/User');
+const JobSeekerProfile = require('../models/JobSeekerProfile');
+const EmployerProfile = require('../models/EmployerProfile');
+const TrainingCenterProfile = require('../models/TrainingCenterProfile');
+const Job = require('../models/Job');
+const Application = require('../models/Application');
+const TrainingCourse = require('../models/TrainingCourse');
+const CourseInquiry = require('../models/CourseInquiry');
+const Notification = require('../models/Notification');
 const { generateToken } = require('../utils/jwt');
 const { validationResult } = require('express-validator');
 const crypto = require('crypto');
@@ -349,6 +357,165 @@ exports.changePassword = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error changing password'
+    });
+  }
+};
+
+// @desc    Delete user account
+// @route   DELETE /api/auth/delete-account
+// @access  Private
+exports.deleteAccount = async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide your password to confirm account deletion'
+      });
+    }
+
+    // Get user with password
+    const user = await User.findById(req.user.id).select('+password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Verify password
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Incorrect password'
+      });
+    }
+
+    // Handle cascade deletion and notifications based on user role
+    const userId = req.user.id;
+    const userRole = user.role;
+
+    if (userRole === 'jobseeker') {
+      // Get job seeker profile for name
+      const profile = await JobSeekerProfile.findOne({ user: userId });
+      const seekerName = profile ? `${profile.firstName} ${profile.lastName}` : 'A job seeker';
+
+      // Get all applications to notify employers
+      const applications = await Application.find({ jobSeeker: userId, status: { $nin: ['withdrawn', 'rejected', 'hired'] } })
+        .populate('job', 'title')
+        .populate('employer', '_id');
+
+      // Create notifications for employers about withdrawn applications
+      const employerNotifications = applications.map(app => ({
+        recipient: app.employer._id,
+        type: 'application_status',
+        title: 'Application Withdrawn',
+        message: `${seekerName} has withdrawn their application for "${app.job?.title || 'a position'}" as they have deleted their account.`,
+        relatedJob: app.job?._id,
+        relatedApplication: app._id
+      }));
+
+      if (employerNotifications.length > 0) {
+        await Notification.insertMany(employerNotifications);
+      }
+
+      // Delete job seeker's data
+      await Promise.all([
+        JobSeekerProfile.deleteOne({ user: userId }),
+        Application.deleteMany({ jobSeeker: userId }),
+        CourseInquiry.deleteMany({ inquirer: userId }),
+        Notification.deleteMany({ recipient: userId })
+      ]);
+
+    } else if (userRole === 'employer') {
+      // Get employer profile for company name
+      const profile = await EmployerProfile.findOne({ user: userId });
+      const companyName = profile?.companyName || 'A company';
+
+      // Get all jobs and their applications
+      const jobs = await Job.find({ employer: userId });
+      const jobIds = jobs.map(job => job._id);
+
+      // Get all applications to notify job seekers
+      const applications = await Application.find({
+        job: { $in: jobIds },
+        status: { $nin: ['withdrawn', 'rejected', 'hired'] }
+      }).populate('job', 'title');
+
+      // Create notifications for job seekers
+      const jobSeekerNotifications = applications.map(app => ({
+        recipient: app.jobSeeker,
+        type: 'application_status',
+        title: 'Company No Longer Available',
+        message: `${companyName} has closed their account. Your application for "${app.job?.title || 'a position'}" is no longer active.`,
+        relatedJob: app.job?._id,
+        relatedApplication: app._id
+      }));
+
+      if (jobSeekerNotifications.length > 0) {
+        await Notification.insertMany(jobSeekerNotifications);
+      }
+
+      // Delete employer's data
+      await Promise.all([
+        EmployerProfile.deleteOne({ user: userId }),
+        Job.deleteMany({ employer: userId }),
+        Application.deleteMany({ job: { $in: jobIds } }),
+        Notification.deleteMany({ recipient: userId })
+      ]);
+
+    } else if (userRole === 'training_center') {
+      // Get training center profile for name
+      const profile = await TrainingCenterProfile.findOne({ user: userId });
+      const centerName = profile?.centerName || 'A training center';
+
+      // Get all courses
+      const courses = await TrainingCourse.find({ trainingCenter: userId });
+      const courseIds = courses.map(course => course._id);
+
+      // Get all inquiries to notify inquirers
+      const inquiries = await CourseInquiry.find({
+        course: { $in: courseIds },
+        status: { $nin: ['closed', 'enrolled'] },
+        inquirer: { $exists: true, $ne: null }
+      }).populate('course', 'title');
+
+      // Create notifications for inquirers
+      const inquirerNotifications = inquiries.map(inq => ({
+        recipient: inq.inquirer,
+        type: 'course_inquiry',
+        title: 'Training Center No Longer Available',
+        message: `${centerName} has closed their account. Your inquiry about "${inq.course?.title || 'a course'}" is no longer active.`
+      }));
+
+      if (inquirerNotifications.length > 0) {
+        await Notification.insertMany(inquirerNotifications);
+      }
+
+      // Delete training center's data
+      await Promise.all([
+        TrainingCenterProfile.deleteOne({ user: userId }),
+        TrainingCourse.deleteMany({ trainingCenter: userId }),
+        CourseInquiry.deleteMany({ trainingCenter: userId }),
+        Notification.deleteMany({ recipient: userId })
+      ]);
+    }
+
+    // Finally, delete the user account
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Account and all related data deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting account'
     });
   }
 };

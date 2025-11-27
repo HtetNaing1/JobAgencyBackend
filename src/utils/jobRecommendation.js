@@ -11,9 +11,10 @@ const calculateMatchScore = (job, profile) => {
   let factors = 0;
 
   // 1. Skills match (40% weight)
-  if (profile.skills && profile.skills.length > 0 && job.requirements && job.requirements.length > 0) {
+  const jobSkills = job.requirements?.skills || [];
+  if (profile.skills && profile.skills.length > 0 && jobSkills.length > 0) {
     const profileSkills = profile.skills.map(s => s.toLowerCase());
-    const jobRequirements = job.requirements.map(r => r.toLowerCase());
+    const jobRequirements = jobSkills.map(r => r.toLowerCase());
 
     const matchedSkills = profileSkills.filter(skill =>
       jobRequirements.some(req => req.includes(skill) || skill.includes(req))
@@ -35,10 +36,10 @@ const calculateMatchScore = (job, profile) => {
       'part-time': 1,
       'contract': 3,
       'internship': 0,
-      'remote': 2
+      'temporary': 1
     };
 
-    const expectedYears = jobTypeExpectation[job.type] || 2;
+    const expectedYears = jobTypeExpectation[job.jobType] || 2;
 
     if (totalYears >= expectedYears) {
       experienceScore = 100;
@@ -71,40 +72,43 @@ const calculateMatchScore = (job, profile) => {
   }
 
   // 4. Location match (15% weight)
-  if (profile.preferredLocation || profile.location) {
-    const preferredLoc = (profile.preferredLocation || profile.location || '').toLowerCase();
-    const jobLoc = (job.location || '').toLowerCase();
+  if (profile.location) {
+    const profileCity = (profile.location.city || '').toLowerCase();
+    const profileCountry = (profile.location.country || '').toLowerCase();
+    const jobCity = (job.location?.city || '').toLowerCase();
+    const jobCountry = (job.location?.country || '').toLowerCase();
 
     let locationScore = 50; // Default partial match
 
-    if (job.type === 'remote') {
+    if (job.location?.remote) {
       locationScore = 100;
-    } else if (preferredLoc && jobLoc) {
-      if (jobLoc.includes(preferredLoc) || preferredLoc.includes(jobLoc)) {
+    } else if (profileCity && jobCity) {
+      if (jobCity.includes(profileCity) || profileCity.includes(jobCity)) {
         locationScore = 100;
+      } else if (jobCountry === profileCountry) {
+        locationScore = 70;
       }
+    } else if (profileCountry && jobCountry && profileCountry === jobCountry) {
+      locationScore = 70;
     }
 
     score += locationScore * 0.15;
     factors += 0.15;
   }
 
-  // 5. Salary match (10% weight)
-  if (profile.expectedSalary && job.salary) {
-    let salaryScore = 50;
+  // 5. Job type preference match (10% weight)
+  if (profile.preferredJobTypes && profile.preferredJobTypes.length > 0) {
+    let jobTypeScore = 50;
 
-    if (job.salary.min && job.salary.max) {
-      const expectedMin = profile.expectedSalary.min || 0;
-      const expectedMax = profile.expectedSalary.max || Infinity;
-
-      if (job.salary.max >= expectedMin && job.salary.min <= expectedMax) {
-        salaryScore = 100;
-      } else if (job.salary.max >= expectedMin * 0.8) {
-        salaryScore = 70;
-      }
+    if (profile.preferredJobTypes.includes(job.jobType)) {
+      jobTypeScore = 100;
+    }
+    // Check for remote preference
+    if (profile.preferredJobTypes.includes('remote') && job.location?.remote) {
+      jobTypeScore = 100;
     }
 
-    score += salaryScore * 0.1;
+    score += jobTypeScore * 0.1;
     factors += 0.1;
   }
 
@@ -151,9 +155,9 @@ const getJobRecommendations = async (userId, limit = 10) => {
 
     if (!profile) {
       // Return latest jobs if no profile
-      const jobs = await Job.find({ status: 'open' })
+      const jobs = await Job.find({ status: 'active' })
         .populate('employer', 'email')
-        .populate('employerProfile', 'companyName companyLogo')
+        .populate('employerProfile', 'companyName logo')
         .sort({ createdAt: -1 })
         .limit(limit);
 
@@ -168,13 +172,13 @@ const getJobRecommendations = async (userId, limit = 10) => {
     const applications = await Application.find({ jobSeeker: userId });
     const appliedJobIds = applications.map(app => app.job.toString());
 
-    // Get all open jobs that user hasn't applied to
+    // Get all active jobs that user hasn't applied to
     const jobs = await Job.find({
-      status: 'open',
+      status: 'active',
       _id: { $nin: appliedJobIds }
     })
       .populate('employer', 'email')
-      .populate('employerProfile', 'companyName companyLogo');
+      .populate('employerProfile', 'companyName logo');
 
     // Calculate match scores
     const scoredJobs = jobs.map(job => {
@@ -205,9 +209,10 @@ const getMatchReasons = (job, profile) => {
   const reasons = [];
 
   // Skills match
-  if (profile.skills && profile.skills.length > 0 && job.requirements && job.requirements.length > 0) {
+  const jobSkills = job.requirements?.skills || [];
+  if (profile.skills && profile.skills.length > 0 && jobSkills.length > 0) {
     const profileSkills = profile.skills.map(s => s.toLowerCase());
-    const jobRequirements = job.requirements.map(r => r.toLowerCase());
+    const jobRequirements = jobSkills.map(r => r.toLowerCase());
 
     const matchedSkills = profileSkills.filter(skill =>
       jobRequirements.some(req => req.includes(skill) || skill.includes(req))
@@ -226,14 +231,21 @@ const getMatchReasons = (job, profile) => {
     }
   }
 
-  // Location
-  if (job.type === 'remote') {
+  // Location / Remote
+  if (job.location?.remote) {
     reasons.push('Remote work available');
-  } else if (profile.preferredLocation || profile.location) {
-    const preferredLoc = (profile.preferredLocation || profile.location || '').toLowerCase();
-    const jobLoc = (job.location || '').toLowerCase();
-    if (jobLoc.includes(preferredLoc) || preferredLoc.includes(jobLoc)) {
+  } else if (profile.location) {
+    const profileCity = (profile.location.city || '').toLowerCase();
+    const jobCity = (job.location?.city || '').toLowerCase();
+    if (profileCity && jobCity && (jobCity.includes(profileCity) || profileCity.includes(jobCity))) {
       reasons.push('Location matches preference');
+    }
+  }
+
+  // Job type preference
+  if (profile.preferredJobTypes && profile.preferredJobTypes.length > 0) {
+    if (profile.preferredJobTypes.includes(job.jobType)) {
+      reasons.push(`Matches preferred job type: ${job.jobType}`);
     }
   }
 
@@ -262,28 +274,34 @@ const getSimilarJobs = async (jobId, limit = 5) => {
 
     const jobs = await Job.find({
       _id: { $ne: jobId },
-      status: 'open'
+      status: 'active'
     })
       .populate('employer', 'email')
-      .populate('employerProfile', 'companyName companyLogo');
+      .populate('employerProfile', 'companyName logo');
 
     const scoredJobs = jobs.map(job => {
       let score = 0;
 
-      // Same category/type
-      if (job.type === referenceJob.type) score += 30;
+      // Same job type
+      if (job.jobType === referenceJob.jobType) score += 30;
 
-      // Similar requirements
-      if (job.requirements && referenceJob.requirements) {
-        const jobReqs = job.requirements.map(r => r.toLowerCase());
-        const refReqs = referenceJob.requirements.map(r => r.toLowerCase());
+      // Similar requirements/skills
+      const jobSkills = job.requirements?.skills || [];
+      const refSkills = referenceJob.requirements?.skills || [];
+      if (jobSkills.length > 0 && refSkills.length > 0) {
+        const jobReqs = jobSkills.map(r => r.toLowerCase());
+        const refReqs = refSkills.map(r => r.toLowerCase());
         const overlap = jobReqs.filter(r => refReqs.some(ref => ref.includes(r) || r.includes(ref)));
         score += (overlap.length / Math.max(refReqs.length, 1)) * 40;
       }
 
       // Similar location
       if (job.location && referenceJob.location) {
-        if (job.location.toLowerCase() === referenceJob.location.toLowerCase()) {
+        const jobCity = (job.location.city || '').toLowerCase();
+        const refCity = (referenceJob.location.city || '').toLowerCase();
+        if (jobCity && refCity && jobCity === refCity) {
+          score += 15;
+        } else if (job.location.remote && referenceJob.location.remote) {
           score += 15;
         }
       }
