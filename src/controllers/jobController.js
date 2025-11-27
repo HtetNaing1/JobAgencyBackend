@@ -68,8 +68,15 @@ exports.getAllJobs = async (req, res) => {
       limit = 10,
     } = req.query;
 
-    // Build query
-    const query = { status: 'active' };
+    // Build query - only show active jobs with valid deadline
+    const query = {
+      status: 'active',
+      $or: [
+        { applicationDeadline: { $gte: new Date() } }, // Deadline is in the future
+        { applicationDeadline: { $exists: false } },   // No deadline set
+        { applicationDeadline: null }                   // Deadline is null
+      ]
+    };
 
     // Text search
     if (search) {
