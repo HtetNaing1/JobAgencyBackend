@@ -45,7 +45,7 @@ exports.register = async (req, res) => {
     });
 
     // Send verification email if email service is configured
-    const emailConfigured = process.env.SMTP_USER && process.env.SMTP_PASS;
+    const emailConfigured = !!process.env.BREVO_API_KEY;
     let emailSent = false;
 
     if (emailConfigured) {
