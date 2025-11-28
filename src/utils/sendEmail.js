@@ -6,6 +6,13 @@ const sendEmail = async (options) => {
   const sendgridKey = process.env.SENDGRID_API_KEY;
   const brevoKey = process.env.BREVO_API_KEY || process.env.SMTP_PASS;
 
+  console.log('📧 Email config check:', {
+    hasSendGrid: !!sendgridKey,
+    hasBrevo: !!brevoKey,
+    fromAddress: process.env.EMAIL_FROM_ADDRESS || 'not set',
+    to: options.to
+  });
+
   if (!sendgridKey && !brevoKey) {
     console.warn('⚠️  Email not configured: Set SENDGRID_API_KEY or BREVO_API_KEY');
     const error = new Error('Email service not configured');
