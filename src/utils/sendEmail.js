@@ -3,111 +3,76 @@ const nodemailer = require('nodemailer');
 let transporter = null;
 
 /**
- * Create email transporter based on environment
+ * Initialize Brevo SMTP transporter
  */
-const createTransporter = () => {
-  // Return cached transporter if already created
-  if (transporter) {
-    return transporter;
-  }
+const initializeTransporter = () => {
+  if (transporter) return true;
 
-  // Check if email is configured
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn('⚠️  Email not configured: SMTP_USER and SMTP_PASS are required');
-    return null;
+    console.warn('⚠️  Email not configured: Set SMTP_USER and SMTP_PASS');
+    return false;
   }
 
-  // For production with custom SMTP host
-  if (process.env.SMTP_HOST) {
-    transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      // Production optimizations
-      pool: true,
-      maxConnections: 5,
-      maxMessages: 100,
-    });
-  } else {
-    // Default: Gmail configuration
-    transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-  }
+  transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
+    port: parseInt(process.env.SMTP_PORT) || 587,
+    secure: false,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+    tls: {
+      rejectUnauthorized: false
+    },
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 30000,
+  });
 
-  // Verify transporter configuration
   transporter.verify((error) => {
     if (error) {
-      console.error('❌ Email transporter verification failed:', error.message);
-      transporter = null;
+      console.error('❌ Email verification failed:', error.message);
     } else {
-      console.log('✅ Email service is ready');
+      console.log('✅ Email service ready (Brevo)');
     }
   });
 
-  return transporter;
+  return true;
 };
+
+// Initialize on module load
+initializeTransporter();
 
 /**
  * Send an email
- * @param {Object} options
- * @param {string} options.to - Recipient email
- * @param {string} options.subject - Email subject
- * @param {string} options.text - Plain text content
- * @param {string} [options.html] - HTML content (optional)
- * @param {number} [retries=2] - Number of retry attempts
  */
-const sendEmail = async (options, retries = 2) => {
-  const emailTransporter = createTransporter();
+const sendEmail = async (options) => {
+  if (!transporter) {
+    initializeTransporter();
+  }
 
-  if (!emailTransporter) {
+  if (!transporter) {
     const error = new Error('Email service not configured');
     error.code = 'EMAIL_NOT_CONFIGURED';
     throw error;
   }
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM || `"JobAgency" <${process.env.SMTP_USER}>`,
+    from: process.env.EMAIL_FROM || 'JobAgency <noreply@jobagency.com>',
     to: options.to,
     subject: options.subject,
     text: options.text,
     html: options.html,
   };
 
-  let lastError;
-
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const info = await emailTransporter.sendMail(mailOptions);
-      console.log(`📧 Email sent to ${options.to}: ${info.messageId}`);
-      return { success: true, messageId: info.messageId };
-    } catch (error) {
-      lastError = error;
-      console.error(`📧 Email attempt ${attempt + 1} failed:`, error.message);
-
-      // Don't retry for certain errors
-      if (error.code === 'EAUTH' || error.responseCode === 550) {
-        break;
-      }
-
-      // Wait before retrying (exponential backoff)
-      if (attempt < retries) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
-      }
-    }
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`📧 Email sent to ${options.to}: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error(`📧 Failed to send email to ${options.to}:`, error.message);
+    throw error;
   }
-
-  // All retries failed
-  console.error(`📧 Failed to send email to ${options.to} after ${retries + 1} attempts`);
-  throw lastError;
 };
 
 /**
