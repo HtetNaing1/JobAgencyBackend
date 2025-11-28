@@ -2,6 +2,7 @@ const Application = require('../models/Application');
 const Job = require('../models/Job');
 const JobSeekerProfile = require('../models/JobSeekerProfile');
 const EmployerProfile = require('../models/EmployerProfile');
+const User = require('../models/User');
 const cloudinary = require('../config/cloudinary');
 const streamifier = require('streamifier');
 const mongoose = require('mongoose');
@@ -11,6 +12,11 @@ const {
   notifyInterviewScheduled,
   notifyFeedbackReceived
 } = require('../utils/createNotification');
+const {
+  sendApplicationStatusEmail,
+  sendInterviewEmail,
+  sendNewApplicationEmail
+} = require('../utils/sendEmail');
 
 // Helper function to upload file to cloudinary
 const uploadToCloudinary = (fileBuffer, folder, resourceType = 'auto') => {
@@ -170,6 +176,24 @@ const submitApplication = async (req, res) => {
       job.title,
       applicantName
     );
+
+    // Send email notification to employer (non-blocking)
+    try {
+      const employerUser = await User.findById(job.employer);
+      const employerProfile = await EmployerProfile.findOne({ user: job.employer });
+      if (employerUser?.email) {
+        const applicationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/employer/applications`;
+        sendNewApplicationEmail(
+          employerUser.email,
+          employerProfile?.companyName || 'Hiring Team',
+          job.title,
+          applicantName,
+          applicationUrl
+        ).catch(err => console.error('Failed to send new application email:', err.message));
+      }
+    } catch (emailErr) {
+      console.error('Error preparing application email:', emailErr.message);
+    }
 
     res.status(201).json({
       success: true,
@@ -510,6 +534,26 @@ const updateApplicationStatus = async (req, res) => {
       status
     );
 
+    // Send email notification to job seeker (non-blocking)
+    try {
+      const jobSeekerUser = await User.findById(application.jobSeeker);
+      const jobSeekerProfile = await JobSeekerProfile.findOne({ user: application.jobSeeker });
+      if (jobSeekerUser?.email) {
+        const applicationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/applications`;
+        const userName = jobSeekerProfile ? `${jobSeekerProfile.firstName}` : 'there';
+        sendApplicationStatusEmail(
+          jobSeekerUser.email,
+          userName,
+          job?.title || 'the position',
+          companyName,
+          status,
+          applicationUrl
+        ).catch(err => console.error('Failed to send status update email:', err.message));
+      }
+    } catch (emailErr) {
+      console.error('Error preparing status email:', emailErr.message);
+    }
+
     res.json({
       success: true,
       message: 'Application status updated',
@@ -704,6 +748,27 @@ const scheduleInterview = async (req, res) => {
       companyName,
       scheduledDate
     );
+
+    // Send interview email to job seeker (non-blocking)
+    try {
+      const jobSeekerUser = await User.findById(application.jobSeeker);
+      const jobSeekerProfile = await JobSeekerProfile.findOne({ user: application.jobSeeker });
+      if (jobSeekerUser?.email) {
+        const userName = jobSeekerProfile ? `${jobSeekerProfile.firstName}` : 'there';
+        sendInterviewEmail(
+          jobSeekerUser.email,
+          userName,
+          job?.title || 'the position',
+          companyName,
+          scheduledDate,
+          location,
+          meetingLink,
+          notes
+        ).catch(err => console.error('Failed to send interview email:', err.message));
+      }
+    } catch (emailErr) {
+      console.error('Error preparing interview email:', emailErr.message);
+    }
 
     res.json({
       success: true,

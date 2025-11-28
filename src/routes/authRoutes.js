@@ -9,7 +9,9 @@ const {
   forgotPassword,
   resetPassword,
   changePassword,
-  deleteAccount
+  deleteAccount,
+  verifyEmail,
+  resendVerification
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const {
@@ -53,6 +55,10 @@ router.post('/logout', protect, logout);
 router.post('/forgot-password', passwordResetLimiter, forgotPassword);
 router.post('/reset-password', passwordResetLimiter, resetPassword);
 router.put('/change-password', protect, changePassword);
+
+// Email verification routes
+router.post('/verify-email', verifyEmail);
+router.post('/resend-verification', passwordResetLimiter, resendVerification);
 
 // Account management routes
 router.delete('/delete-account', protect, deleteAccount);
