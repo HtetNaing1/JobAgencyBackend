@@ -45,7 +45,7 @@ exports.register = async (req, res) => {
     });
 
     // Send verification email if email service is configured
-    const emailConfigured = !!process.env.BREVO_API_KEY;
+    const emailConfigured = !!(process.env.SENDGRID_API_KEY || process.env.BREVO_API_KEY);
     let emailSent = false;
 
     if (emailConfigured) {
