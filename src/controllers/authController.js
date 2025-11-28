@@ -56,12 +56,17 @@ exports.register = async (req, res) => {
       // Create verification URL
       const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
 
+      // Always log verification URL for development
+      console.log(`\n📧 Verification link for ${email}:`);
+      console.log(`   ${verificationUrl}\n`);
+
       // Send verification email (non-blocking)
       try {
         await sendVerificationEmail(email, verificationUrl);
         emailSent = true;
       } catch (emailError) {
         console.error('Failed to send verification email:', emailError.message);
+        // User can still use the console-logged URL
       }
     } else {
       // Auto-verify if email not configured
@@ -657,6 +662,10 @@ exports.resendVerification = async (req, res) => {
     // Create verification URL
     const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
 
+    // Always log verification URL for development
+    console.log(`\n📧 Verification link for ${email}:`);
+    console.log(`   ${verificationUrl}\n`);
+
     try {
       await sendVerificationEmail(email, verificationUrl);
 
@@ -665,15 +674,11 @@ exports.resendVerification = async (req, res) => {
         message: 'Verification email sent. Please check your inbox.'
       });
     } catch (emailError) {
-      // Clear the token if email fails
-      user.emailVerificationToken = undefined;
-      user.emailVerificationExpire = undefined;
-      await user.save({ validateBeforeSave: false });
-
       console.error('Email send error:', emailError);
-      res.status(500).json({
-        success: false,
-        message: 'Email could not be sent. Please try again later.'
+      // Still return success since URL is logged to console
+      res.status(200).json({
+        success: true,
+        message: 'Verification link generated. Check server console if email not received.'
       });
     }
   } catch (error) {

@@ -1,12 +1,13 @@
 /**
- * Send email using Brevo HTTP API
- * This works on all hosting providers (no SMTP port blocking issues)
+ * Send email using SendGrid or Brevo HTTP API
+ * Supports both services - SendGrid is preferred if configured
  */
 const sendEmail = async (options) => {
-  const apiKey = process.env.BREVO_API_KEY;
+  const sendgridKey = process.env.SENDGRID_API_KEY;
+  const brevoKey = process.env.BREVO_API_KEY || process.env.SMTP_PASS;
 
-  if (!apiKey) {
-    console.warn('⚠️  Email not configured: Set BREVO_API_KEY');
+  if (!sendgridKey && !brevoKey) {
+    console.warn('⚠️  Email not configured: Set SENDGRID_API_KEY or BREVO_API_KEY');
     const error = new Error('Email service not configured');
     error.code = 'EMAIL_NOT_CONFIGURED';
     throw error;
@@ -15,6 +16,58 @@ const sendEmail = async (options) => {
   const senderEmail = process.env.EMAIL_FROM_ADDRESS || 'noreply@jobagency.com';
   const senderName = process.env.EMAIL_FROM_NAME || 'JobAgency';
 
+  // Use SendGrid if configured, otherwise use Brevo
+  if (sendgridKey) {
+    return sendWithSendGrid(options, sendgridKey, senderEmail, senderName);
+  } else {
+    return sendWithBrevo(options, brevoKey, senderEmail, senderName);
+  }
+};
+
+/**
+ * Send email using SendGrid API
+ */
+const sendWithSendGrid = async (options, apiKey, senderEmail, senderName) => {
+  const payload = {
+    personalizations: [{ to: [{ email: options.to }] }],
+    from: { email: senderEmail, name: senderName },
+    subject: options.subject,
+    content: [
+      { type: 'text/plain', value: options.text || options.subject },
+      { type: 'text/html', value: options.html || options.text || options.subject }
+    ]
+  };
+
+  try {
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('📧 SendGrid API error:', errorText);
+      throw new Error(errorText || 'Failed to send email');
+    }
+
+    // SendGrid returns 202 with no body on success
+    const messageId = response.headers.get('x-message-id') || 'sent';
+    console.log(`📧 Email sent to ${options.to} via SendGrid`);
+    return { success: true, messageId };
+  } catch (error) {
+    console.error(`📧 Failed to send email to ${options.to}:`, error.message);
+    throw error;
+  }
+};
+
+/**
+ * Send email using Brevo API
+ */
+const sendWithBrevo = async (options, apiKey, senderEmail, senderName) => {
   const payload = {
     sender: { name: senderName, email: senderEmail },
     to: [{ email: options.to }],
@@ -41,7 +94,7 @@ const sendEmail = async (options) => {
       throw new Error(data.message || 'Failed to send email');
     }
 
-    console.log(`📧 Email sent to ${options.to}: ${data.messageId}`);
+    console.log(`📧 Email sent to ${options.to} via Brevo: ${data.messageId}`);
     return { success: true, messageId: data.messageId };
   } catch (error) {
     console.error(`📧 Failed to send email to ${options.to}:`, error.message);
@@ -50,10 +103,12 @@ const sendEmail = async (options) => {
 };
 
 // Log email config status on startup
-if (process.env.BREVO_API_KEY) {
-  console.log('✅ Email service ready (Brevo API)');
+if (process.env.SENDGRID_API_KEY) {
+  console.log('✅ Email service ready (SendGrid)');
+} else if (process.env.BREVO_API_KEY || process.env.SMTP_PASS) {
+  console.log('✅ Email service ready (Brevo)');
 } else {
-  console.warn('⚠️  Email not configured: Set BREVO_API_KEY');
+  console.warn('⚠️  Email not configured: Set SENDGRID_API_KEY or BREVO_API_KEY');
 }
 
 /**
