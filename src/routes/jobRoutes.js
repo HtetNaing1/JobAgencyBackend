@@ -8,12 +8,19 @@ const {
   updateJob,
   deleteJob,
   toggleJobStatus,
+  recordJobView,
+  getRecommendedJobs,
 } = require('../controllers/jobController');
 const { protect, authorize } = require('../middleware/auth');
 
 // Public routes
 router.get('/', getAllJobs);
+
+// Protected route for job seekers - must come before /:id
+router.get('/recommended', protect, authorize('jobseeker'), getRecommendedJobs);
+
 router.get('/:id', getJobById);
+router.post('/:id/view', recordJobView);
 
 // Protected routes (Employer only)
 router.post('/', protect, authorize('employer'), createJob);

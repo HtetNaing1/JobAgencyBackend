@@ -3,9 +3,6 @@ const TrainingCenterProfile = require('../models/TrainingCenterProfile');
 const CourseInquiry = require('../models/CourseInquiry');
 const { createNotification } = require('../utils/createNotification');
 
-// @desc    Create a new course
-// @route   POST /api/courses
-// @access  Private (Training Centers only)
 exports.createCourse = async (req, res) => {
   try {
     const profile = await TrainingCenterProfile.findOne({ user: req.user.id });
@@ -45,9 +42,6 @@ exports.createCourse = async (req, res) => {
   }
 };
 
-// @desc    Get all courses for the current training center
-// @route   GET /api/courses/my-courses
-// @access  Private (Training Centers only)
 exports.getMyCourses = async (req, res) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
@@ -88,9 +82,6 @@ exports.getMyCourses = async (req, res) => {
   }
 };
 
-// @desc    Get single course by ID
-// @route   GET /api/courses/:id
-// @access  Public
 exports.getCourseById = async (req, res) => {
   try {
     const course = await TrainingCourse.findById(req.params.id)
@@ -102,10 +93,6 @@ exports.getCourseById = async (req, res) => {
         message: 'Course not found'
       });
     }
-
-    // Increment view count
-    course.viewCount += 1;
-    await course.save();
 
     res.json({
       success: true,
@@ -121,9 +108,6 @@ exports.getCourseById = async (req, res) => {
   }
 };
 
-// @desc    Update a course
-// @route   PUT /api/courses/:id
-// @access  Private (Training Centers only)
 exports.updateCourse = async (req, res) => {
   try {
     let course = await TrainingCourse.findById(req.params.id);
@@ -164,9 +148,6 @@ exports.updateCourse = async (req, res) => {
   }
 };
 
-// @desc    Delete a course
-// @route   DELETE /api/courses/:id
-// @access  Private (Training Centers only)
 exports.deleteCourse = async (req, res) => {
   try {
     const course = await TrainingCourse.findById(req.params.id);
@@ -208,9 +189,6 @@ exports.deleteCourse = async (req, res) => {
   }
 };
 
-// @desc    Get all published courses (marketplace)
-// @route   GET /api/courses
-// @access  Public
 exports.getAllCourses = async (req, res) => {
   try {
     const {
@@ -322,9 +300,6 @@ exports.getAllCourses = async (req, res) => {
   }
 };
 
-// @desc    Get courses by training center
-// @route   GET /api/courses/center/:centerId
-// @access  Public
 exports.getCoursesByCenter = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
@@ -365,9 +340,6 @@ exports.getCoursesByCenter = async (req, res) => {
   }
 };
 
-// @desc    Submit course inquiry
-// @route   POST /api/courses/:id/inquiry
-// @access  Private (Job Seekers and Employers)
 exports.submitInquiry = async (req, res) => {
   try {
     const course = await TrainingCourse.findById(req.params.id);
@@ -440,9 +412,6 @@ exports.submitInquiry = async (req, res) => {
   }
 };
 
-// @desc    Get inquiries for training center
-// @route   GET /api/courses/inquiries
-// @access  Private (Training Centers only)
 exports.getInquiries = async (req, res) => {
   try {
     const { status, courseId, page = 1, limit = 10 } = req.query;
@@ -490,9 +459,6 @@ exports.getInquiries = async (req, res) => {
   }
 };
 
-// @desc    Update inquiry status
-// @route   PUT /api/courses/inquiries/:inquiryId
-// @access  Private (Training Centers only)
 exports.updateInquiryStatus = async (req, res) => {
   try {
     const { status, notes, responseMessage } = req.body;
@@ -559,9 +525,6 @@ exports.updateInquiryStatus = async (req, res) => {
   }
 };
 
-// @desc    Get course categories
-// @route   GET /api/courses/categories
-// @access  Public
 exports.getCategories = async (req, res) => {
   try {
     const categories = [
@@ -610,9 +573,6 @@ exports.getCategories = async (req, res) => {
   }
 };
 
-// @desc    Get user's inquiry for a specific course
-// @route   GET /api/courses/:id/my-inquiry
-// @access  Private (Job Seekers only)
 exports.getMyInquiryForCourse = async (req, res) => {
   try {
     const inquiry = await CourseInquiry.findOne({
@@ -634,9 +594,6 @@ exports.getMyInquiryForCourse = async (req, res) => {
   }
 };
 
-// @desc    Get all course inquiries for current user (job seeker)
-// @route   GET /api/courses/user/inquiries
-// @access  Private (Job Seekers only)
 exports.getUserInquiries = async (req, res) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
@@ -681,6 +638,33 @@ exports.getUserInquiries = async (req, res) => {
       success: false,
       message: 'Error fetching inquiries',
       error: error.message
+    });
+  }
+};
+
+exports.recordCourseView = async (req, res) => {
+  try {
+    const course = await TrainingCourse.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { viewCount: 1 } },
+      { new: true }
+    );
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      viewCount: course.viewCount
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error recording view'
     });
   }
 };

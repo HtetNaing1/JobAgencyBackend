@@ -3,9 +3,6 @@ const TrainingCourse = require('../models/TrainingCourse');
 const CourseInquiry = require('../models/CourseInquiry');
 const { uploadToCloudinary } = require('../middleware/upload');
 
-// @desc    Create or update training center profile
-// @route   POST /api/training-centers/profile
-// @access  Private (Training Centers only)
 exports.createOrUpdateProfile = async (req, res) => {
   try {
     const {
@@ -60,9 +57,6 @@ exports.createOrUpdateProfile = async (req, res) => {
   }
 };
 
-// @desc    Get current user's training center profile
-// @route   GET /api/training-centers/profile
-// @access  Private (Training Centers only)
 exports.getMyProfile = async (req, res) => {
   try {
     const profile = await TrainingCenterProfile.findOne({ user: req.user.id });
@@ -88,9 +82,6 @@ exports.getMyProfile = async (req, res) => {
   }
 };
 
-// @desc    Get training center profile by ID (public)
-// @route   GET /api/training-centers/:id
-// @access  Public
 exports.getProfileById = async (req, res) => {
   try {
     const profile = await TrainingCenterProfile.findById(req.params.id)
@@ -136,9 +127,6 @@ exports.getProfileById = async (req, res) => {
   }
 };
 
-// @desc    Get training center profile by User ID (public)
-// @route   GET /api/training-centers/user/:userId
-// @access  Public
 exports.getProfileByUserId = async (req, res) => {
   try {
     const profile = await TrainingCenterProfile.findOne({ user: req.params.userId })
@@ -181,9 +169,6 @@ exports.getProfileByUserId = async (req, res) => {
   }
 };
 
-// @desc    Get all training centers (public)
-// @route   GET /api/training-centers
-// @access  Public
 exports.getAllTrainingCenters = async (req, res) => {
   try {
     const {
@@ -255,9 +240,6 @@ exports.getAllTrainingCenters = async (req, res) => {
   }
 };
 
-// @desc    Upload training center logo
-// @route   POST /api/training-centers/logo
-// @access  Private (Training Centers only)
 exports.uploadLogo = async (req, res) => {
   try {
     if (!req.file) {
@@ -304,9 +286,6 @@ exports.uploadLogo = async (req, res) => {
   }
 };
 
-// @desc    Get dashboard stats for training center
-// @route   GET /api/training-centers/dashboard
-// @access  Private (Training Centers only)
 exports.getDashboardStats = async (req, res) => {
   try {
     const profile = await TrainingCenterProfile.findOne({ user: req.user.id });

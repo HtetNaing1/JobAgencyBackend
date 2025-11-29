@@ -1,9 +1,7 @@
 const Job = require('../models/Job');
 const EmployerProfile = require('../models/EmployerProfile');
+const JobSeekerProfile = require('../models/JobSeekerProfile');
 
-// @desc    Create a new job posting
-// @route   POST /api/jobs
-// @access  Private (Employer only)
 exports.createJob = async (req, res) => {
   try {
     const {
@@ -50,9 +48,6 @@ exports.createJob = async (req, res) => {
   }
 };
 
-// @desc    Get all jobs (public - with filters)
-// @route   GET /api/jobs
-// @access  Public
 exports.getAllJobs = async (req, res) => {
   try {
     const {
@@ -162,9 +157,6 @@ exports.getAllJobs = async (req, res) => {
   }
 };
 
-// @desc    Get single job by ID
-// @route   GET /api/jobs/:id
-// @access  Public
 exports.getJobById = async (req, res) => {
   try {
     const job = await Job.findById(req.params.id)
@@ -180,10 +172,6 @@ exports.getJobById = async (req, res) => {
       });
     }
 
-    // Increment view count
-    job.viewCount += 1;
-    await job.save();
-
     res.status(200).json({
       success: true,
       data: job,
@@ -198,9 +186,6 @@ exports.getJobById = async (req, res) => {
   }
 };
 
-// @desc    Get jobs by employer
-// @route   GET /api/jobs/employer/me
-// @access  Private (Employer only)
 exports.getEmployerJobs = async (req, res) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
@@ -266,9 +251,6 @@ exports.getEmployerJobs = async (req, res) => {
   }
 };
 
-// @desc    Update job
-// @route   PUT /api/jobs/:id
-// @access  Private (Employer only - owner)
 exports.updateJob = async (req, res) => {
   try {
     let job = await Job.findById(req.params.id);
@@ -331,9 +313,6 @@ exports.updateJob = async (req, res) => {
   }
 };
 
-// @desc    Delete job (soft delete - set status to closed)
-// @route   DELETE /api/jobs/:id
-// @access  Private (Employer only - owner)
 exports.deleteJob = async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
@@ -371,9 +350,6 @@ exports.deleteJob = async (req, res) => {
   }
 };
 
-// @desc    Toggle job status (pause/activate)
-// @route   PUT /api/jobs/:id/status
-// @access  Private (Employer only - owner)
 exports.toggleJobStatus = async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
@@ -415,6 +391,110 @@ exports.toggleJobStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error updating job status',
+      error: error.message,
+    });
+  }
+};
+
+exports.recordJobView = async (req, res) => {
+  try {
+    const job = await Job.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { viewCount: 1 } },
+      { new: true }
+    );
+
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      viewCount: job.viewCount,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error recording view',
+    });
+  }
+};
+
+exports.getRecommendedJobs = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+
+    const profile = await JobSeekerProfile.findOne({ user: req.user._id });
+
+    if (!profile || !profile.skills || profile.skills.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: [],
+        pagination: { total: 0, page: 1, pages: 0, limit: parseInt(limit) },
+        message: 'Add skills to your profile to get job recommendations',
+      });
+    }
+
+    const query = {
+      status: 'active',
+      'requirements.skills': { $in: profile.skills },
+      $or: [
+        { applicationDeadline: { $gte: new Date() } },
+        { applicationDeadline: { $exists: false } },
+        { applicationDeadline: null }
+      ]
+    };
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const jobs = await Job.find(query)
+      .populate({
+        path: 'employerProfile',
+        select: 'companyName logo industry companySize',
+      })
+      .sort({ postedDate: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+
+    // Calculate match score for each job
+    const jobsWithScore = jobs.map(job => {
+      const jobSkills = job.requirements?.skills || [];
+      const matchingSkills = jobSkills.filter(skill =>
+        profile.skills.some(userSkill =>
+          userSkill.toLowerCase() === skill.toLowerCase()
+        )
+      );
+      return {
+        ...job,
+        matchScore: jobSkills.length > 0 ? Math.round((matchingSkills.length / jobSkills.length) * 100) : 0,
+        matchingSkills,
+      };
+    });
+
+    // Sort by match score
+    jobsWithScore.sort((a, b) => b.matchScore - a.matchScore);
+
+    const total = await Job.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      data: jobsWithScore,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / parseInt(limit)),
+        limit: parseInt(limit),
+      },
+    });
+  } catch (error) {
+    console.error('Get recommended jobs error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching recommended jobs',
       error: error.message,
     });
   }

@@ -3,9 +3,6 @@ const Job = require('../models/Job');
 const cloudinary = require('../config/cloudinary');
 const streamifier = require('streamifier');
 
-// @desc    Create or update employer profile
-// @route   POST /api/employers/profile
-// @access  Private (Employer only)
 exports.createOrUpdateProfile = async (req, res) => {
   try {
     const {
@@ -68,9 +65,6 @@ exports.createOrUpdateProfile = async (req, res) => {
   }
 };
 
-// @desc    Get current employer's profile
-// @route   GET /api/employers/profile
-// @access  Private (Employer only)
 exports.getProfile = async (req, res) => {
   try {
     const profile = await EmployerProfile.findOne({ user: req.user._id });
@@ -96,9 +90,6 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// @desc    Get employer profile by ID (public view)
-// @route   GET /api/employers/profile/:userId
-// @access  Public
 exports.getProfileById = async (req, res) => {
   try {
     const profile = await EmployerProfile.findOne({ user: req.params.userId })
@@ -136,9 +127,6 @@ exports.getProfileById = async (req, res) => {
   }
 };
 
-// @desc    Get jobs by employer ID (public view)
-// @route   GET /api/employers/:userId/jobs
-// @access  Public
 exports.getEmployerJobs = async (req, res) => {
   try {
     const { page = 1, limit = 10, status = 'active' } = req.query;
@@ -176,9 +164,6 @@ exports.getEmployerJobs = async (req, res) => {
   }
 };
 
-// @desc    Upload company logo
-// @route   POST /api/employers/logo
-// @access  Private (Employer only)
 exports.uploadLogo = async (req, res) => {
   try {
     if (!req.file) {
@@ -246,9 +231,6 @@ exports.uploadLogo = async (req, res) => {
   }
 };
 
-// @desc    Upload cover image
-// @route   POST /api/employers/cover
-// @access  Private (Employer only)
 exports.uploadCoverImage = async (req, res) => {
   try {
     if (!req.file) {
@@ -316,9 +298,6 @@ exports.uploadCoverImage = async (req, res) => {
   }
 };
 
-// @desc    Get all employers (for public listing)
-// @route   GET /api/employers
-// @access  Public
 exports.getAllEmployers = async (req, res) => {
   try {
     const { page = 1, limit = 10, industry, search } = req.query;

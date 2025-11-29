@@ -12,9 +12,6 @@ const { validationResult } = require('express-validator');
 const crypto = require('crypto');
 const { sendPasswordResetEmail, sendVerificationEmail } = require('../utils/sendEmail');
 
-// @desc    Register a new user
-// @route   POST /api/auth/register
-// @access  Public
 exports.register = async (req, res) => {
   try {
     // Check for validation errors
@@ -57,7 +54,7 @@ exports.register = async (req, res) => {
       const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
 
       // Always log verification URL for development
-      console.log(`\n📧 Verification link for ${email}:`);
+      console.log(`\nVerification link for ${email}:`);
       console.log(`   ${verificationUrl}\n`);
 
       // Send verification email (non-blocking)
@@ -95,9 +92,6 @@ exports.register = async (req, res) => {
   }
 };
 
-// @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
 exports.login = async (req, res) => {
   try {
     // Check for validation errors
@@ -169,9 +163,6 @@ exports.login = async (req, res) => {
   }
 };
 
-// @desc    Get current logged in user
-// @route   GET /api/auth/me
-// @access  Private
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -202,9 +193,6 @@ exports.getMe = async (req, res) => {
   }
 };
 
-// @desc    Logout user (client-side token removal)
-// @route   POST /api/auth/logout
-// @access  Private
 exports.logout = async (req, res) => {
   res.json({
     success: true,
@@ -212,9 +200,6 @@ exports.logout = async (req, res) => {
   });
 };
 
-// @desc    Forgot password - Generate reset token
-// @route   POST /api/auth/forgot-password
-// @access  Public
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -280,9 +265,6 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
-// @desc    Reset password using token
-// @route   POST /api/auth/reset-password
-// @access  Public
 exports.resetPassword = async (req, res) => {
   try {
     const { token, password } = req.body;
@@ -339,9 +321,6 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-// @desc    Change password for logged-in user
-// @route   PUT /api/auth/change-password
-// @access  Private
 exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -405,9 +384,6 @@ exports.changePassword = async (req, res) => {
   }
 };
 
-// @desc    Delete user account
-// @route   DELETE /api/auth/delete-account
-// @access  Private
 exports.deleteAccount = async (req, res) => {
   try {
     const { password } = req.body;
@@ -564,9 +540,6 @@ exports.deleteAccount = async (req, res) => {
   }
 };
 
-// @desc    Verify email address
-// @route   POST /api/auth/verify-email
-// @access  Public
 exports.verifyEmail = async (req, res) => {
   try {
     const { token } = req.body;
@@ -624,9 +597,6 @@ exports.verifyEmail = async (req, res) => {
   }
 };
 
-// @desc    Resend verification email
-// @route   POST /api/auth/resend-verification
-// @access  Public
 exports.resendVerification = async (req, res) => {
   try {
     const { email } = req.body;
@@ -662,8 +632,7 @@ exports.resendVerification = async (req, res) => {
     // Create verification URL
     const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
 
-    // Always log verification URL for development
-    console.log(`\n📧 Verification link for ${email}:`);
+    console.log(`\nVerification link for ${email}:`);
     console.log(`   ${verificationUrl}\n`);
 
     try {

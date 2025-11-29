@@ -2,9 +2,6 @@ const JobSeekerProfile = require('../models/JobSeekerProfile');
 const cloudinary = require('../config/cloudinary');
 const streamifier = require('streamifier');
 
-// @desc    Create or update job seeker profile
-// @route   POST /api/jobseekers/profile
-// @access  Private (Job Seeker only)
 exports.createOrUpdateProfile = async (req, res) => {
   try {
     const {
@@ -77,9 +74,6 @@ exports.createOrUpdateProfile = async (req, res) => {
   }
 };
 
-// @desc    Get current user's profile
-// @route   GET /api/jobseekers/profile
-// @access  Private (Job Seeker only)
 exports.getProfile = async (req, res) => {
   try {
     const profile = await JobSeekerProfile.findOne({ user: req.user._id });
@@ -105,9 +99,6 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// @desc    Get profile by user ID (public view)
-// @route   GET /api/jobseekers/profile/:userId
-// @access  Private (Employers only)
 exports.getProfileById = async (req, res) => {
   try {
     const profile = await JobSeekerProfile.findOne({ user: req.params.userId })
@@ -137,9 +128,6 @@ exports.getProfileById = async (req, res) => {
   }
 };
 
-// @desc    Upload resume
-// @route   POST /api/jobseekers/resume
-// @access  Private (Job Seeker only)
 exports.uploadResume = async (req, res) => {
   try {
     if (!req.file) {
@@ -207,9 +195,6 @@ exports.uploadResume = async (req, res) => {
   }
 };
 
-// @desc    Delete resume
-// @route   DELETE /api/jobseekers/resume
-// @access  Private (Job Seeker only)
 exports.deleteResume = async (req, res) => {
   try {
     const profile = await JobSeekerProfile.findOne({ user: req.user._id });
@@ -242,9 +227,6 @@ exports.deleteResume = async (req, res) => {
   }
 };
 
-// @desc    Upload profile photo
-// @route   POST /api/jobseekers/photo
-// @access  Private (Job Seeker only)
 exports.uploadPhoto = async (req, res) => {
   try {
     if (!req.file) {
@@ -312,9 +294,6 @@ exports.uploadPhoto = async (req, res) => {
   }
 };
 
-// @desc    Add experience
-// @route   POST /api/jobseekers/experience
-// @access  Private (Job Seeker only)
 exports.addExperience = async (req, res) => {
   try {
     const profile = await JobSeekerProfile.findOne({ user: req.user._id });
@@ -343,9 +322,6 @@ exports.addExperience = async (req, res) => {
   }
 };
 
-// @desc    Delete experience
-// @route   DELETE /api/jobseekers/experience/:expId
-// @access  Private (Job Seeker only)
 exports.deleteExperience = async (req, res) => {
   try {
     const profile = await JobSeekerProfile.findOne({ user: req.user._id });
@@ -376,9 +352,6 @@ exports.deleteExperience = async (req, res) => {
   }
 };
 
-// @desc    Add education
-// @route   POST /api/jobseekers/education
-// @access  Private (Job Seeker only)
 exports.addEducation = async (req, res) => {
   try {
     const profile = await JobSeekerProfile.findOne({ user: req.user._id });
@@ -407,9 +380,6 @@ exports.addEducation = async (req, res) => {
   }
 };
 
-// @desc    Delete education
-// @route   DELETE /api/jobseekers/education/:eduId
-// @access  Private (Job Seeker only)
 exports.deleteEducation = async (req, res) => {
   try {
     const profile = await JobSeekerProfile.findOne({ user: req.user._id });

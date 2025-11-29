@@ -1,12 +1,9 @@
-/**
- * Send email using SendGrid or Brevo HTTP API
- * Supports both services - SendGrid is preferred if configured
- */
+
 const sendEmail = async (options) => {
   const sendgridKey = process.env.SENDGRID_API_KEY;
   const brevoKey = process.env.BREVO_API_KEY || process.env.SMTP_PASS;
 
-  console.log('📧 Email config check:', {
+  console.log('Email config check:', {
     hasSendGrid: !!sendgridKey,
     hasBrevo: !!brevoKey,
     fromAddress: process.env.EMAIL_FROM_ADDRESS || 'not set',
@@ -14,7 +11,7 @@ const sendEmail = async (options) => {
   });
 
   if (!sendgridKey && !brevoKey) {
-    console.warn('⚠️  Email not configured: Set SENDGRID_API_KEY or BREVO_API_KEY');
+    console.warn('Email not configured: Set SENDGRID_API_KEY or BREVO_API_KEY');
     const error = new Error('Email service not configured');
     error.code = 'EMAIL_NOT_CONFIGURED';
     throw error;
@@ -31,9 +28,6 @@ const sendEmail = async (options) => {
   }
 };
 
-/**
- * Send email using SendGrid API
- */
 const sendWithSendGrid = async (options, apiKey, senderEmail, senderName) => {
   const payload = {
     personalizations: [{ to: [{ email: options.to }] }],
@@ -57,23 +51,20 @@ const sendWithSendGrid = async (options, apiKey, senderEmail, senderName) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('📧 SendGrid API error:', errorText);
+      console.error('SendGrid API error:', errorText);
       throw new Error(errorText || 'Failed to send email');
     }
 
-    // SendGrid returns 202 with no body on success
+
     const messageId = response.headers.get('x-message-id') || 'sent';
-    console.log(`📧 Email sent to ${options.to} via SendGrid`);
+    console.log(`Email sent to ${options.to} via SendGrid`);
     return { success: true, messageId };
   } catch (error) {
-    console.error(`📧 Failed to send email to ${options.to}:`, error.message);
+    console.error(`Failed to send email to ${options.to}:`, error.message);
     throw error;
   }
 };
 
-/**
- * Send email using Brevo API
- */
 const sendWithBrevo = async (options, apiKey, senderEmail, senderName) => {
   const payload = {
     sender: { name: senderName, email: senderEmail },
@@ -97,30 +88,27 @@ const sendWithBrevo = async (options, apiKey, senderEmail, senderName) => {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('📧 Brevo API error:', data);
+      console.error('Brevo API error:', data);
       throw new Error(data.message || 'Failed to send email');
     }
 
-    console.log(`📧 Email sent to ${options.to} via Brevo: ${data.messageId}`);
+    console.log(`Email sent to ${options.to} via Brevo: ${data.messageId}`);
     return { success: true, messageId: data.messageId };
   } catch (error) {
-    console.error(`📧 Failed to send email to ${options.to}:`, error.message);
+    console.error(`Failed to send email to ${options.to}:`, error.message);
     throw error;
   }
 };
 
-// Log email config status on startup
+
 if (process.env.SENDGRID_API_KEY) {
-  console.log('✅ Email service ready (SendGrid)');
+  console.log('Email service ready (SendGrid)');
 } else if (process.env.BREVO_API_KEY || process.env.SMTP_PASS) {
-  console.log('✅ Email service ready (Brevo)');
+  console.log('Email service ready (Brevo)');
 } else {
-  console.warn('⚠️  Email not configured: Set SENDGRID_API_KEY or BREVO_API_KEY');
+  console.warn('Email not configured: Set SENDGRID_API_KEY or BREVO_API_KEY');
 }
 
-/**
- * Send password reset email
- */
 const sendPasswordResetEmail = async (email, resetUrl, userName = 'User') => {
   const subject = 'Password Reset Request - JobAgency';
 
@@ -192,9 +180,6 @@ The JobAgency Team
   });
 };
 
-/**
- * Send welcome email
- */
 const sendWelcomeEmail = async (email, userName, role) => {
   const subject = 'Welcome to JobAgency!';
 
@@ -230,7 +215,7 @@ The JobAgency Team
   </div>
 
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-    <h2 style="color: #1f2937; margin-top: 0;">Hello ${userName}! 👋</h2>
+    <h2 style="color: #1f2937; margin-top: 0;">Hello ${userName}!</h2>
 
     <p>Your account has been created successfully.</p>
 
@@ -334,51 +319,43 @@ The JobAgency Team
   });
 };
 
-/**
- * Send application status update email
- */
+
 const sendApplicationStatusEmail = async (email, userName, jobTitle, companyName, status, jobUrl) => {
   const statusMessages = {
     reviewed: {
       title: 'Application Reviewed',
       message: 'Your application has been reviewed by the employer.',
-      color: '#3b82f6',
-      icon: '👀'
+      color: '#3b82f6'
     },
     shortlisted: {
       title: 'Congratulations! You\'ve Been Shortlisted',
       message: 'Great news! You\'ve been shortlisted for this position. The employer may contact you soon for next steps.',
-      color: '#10b981',
-      icon: '⭐'
+      color: '#10b981'
     },
     interview: {
       title: 'Interview Scheduled',
       message: 'You\'ve been selected for an interview! Check your dashboard for interview details.',
-      color: '#8b5cf6',
-      icon: '📅'
+      color: '#8b5cf6'
     },
     rejected: {
       title: 'Application Update',
       message: 'Unfortunately, the employer has decided to move forward with other candidates. Don\'t be discouraged - keep applying!',
-      color: '#6b7280',
-      icon: '📋'
+      color: '#6b7280'
     },
     hired: {
       title: 'Congratulations! You\'re Hired!',
       message: 'Amazing news! You\'ve been selected for this position. The employer will be in touch with onboarding details.',
-      color: '#10b981',
-      icon: '🎉'
+      color: '#10b981'
     }
   };
 
   const statusInfo = statusMessages[status] || {
     title: 'Application Status Update',
     message: `Your application status has been updated to: ${status}`,
-    color: '#6b7280',
-    icon: '📬'
+    color: '#6b7280'
   };
 
-  const subject = `${statusInfo.icon} ${statusInfo.title} - ${jobTitle} at ${companyName}`;
+  const subject = `${statusInfo.title} - ${jobTitle} at ${companyName}`;
 
   const text = `
 Hello ${userName},
@@ -409,10 +386,6 @@ The JobAgency Team
   </div>
 
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-    <div style="text-align: center; margin-bottom: 20px;">
-      <span style="font-size: 48px;">${statusInfo.icon}</span>
-    </div>
-
     <h2 style="color: ${statusInfo.color}; margin-top: 0; text-align: center;">${statusInfo.title}</h2>
 
     <p>Hello ${userName},</p>
@@ -454,7 +427,7 @@ The JobAgency Team
  * Send interview scheduled email
  */
 const sendInterviewEmail = async (email, userName, jobTitle, companyName, interviewDate, location, meetingLink, notes) => {
-  const subject = `📅 Interview Scheduled - ${jobTitle} at ${companyName}`;
+  const subject = `Interview Scheduled - ${jobTitle} at ${companyName}`;
   const formattedDate = new Date(interviewDate).toLocaleString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -500,10 +473,6 @@ The JobAgency Team
   </div>
 
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-    <div style="text-align: center; margin-bottom: 20px;">
-      <span style="font-size: 48px;">📅</span>
-    </div>
-
     <p>Hello ${userName},</p>
 
     <p>Great news! An interview has been scheduled for your application.</p>
@@ -512,24 +481,22 @@ The JobAgency Team
       <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: 600; color: #5b21b6;">${jobTitle}</p>
       <p style="margin: 0 0 16px 0; color: #6b7280;">${companyName}</p>
 
-      <div style="display: flex; align-items: center; margin-bottom: 12px;">
-        <span style="font-size: 20px; margin-right: 12px;">🗓️</span>
-        <div>
-          <p style="margin: 0; font-weight: 600; color: #1f2937;">${formattedDate}</p>
-        </div>
+      <div style="margin-bottom: 12px;">
+        <p style="margin: 0; font-weight: 600; color: #6b7280; font-size: 12px;">DATE & TIME</p>
+        <p style="margin: 4px 0 0 0; font-weight: 600; color: #1f2937;">${formattedDate}</p>
       </div>
 
       ${location ? `
-      <div style="display: flex; align-items: center; margin-bottom: 12px;">
-        <span style="font-size: 20px; margin-right: 12px;">📍</span>
-        <p style="margin: 0; color: #4b5563;">${location}</p>
+      <div style="margin-bottom: 12px;">
+        <p style="margin: 0; font-weight: 600; color: #6b7280; font-size: 12px;">LOCATION</p>
+        <p style="margin: 4px 0 0 0; color: #4b5563;">${location}</p>
       </div>
       ` : ''}
 
       ${meetingLink ? `
-      <div style="display: flex; align-items: center; margin-bottom: 12px;">
-        <span style="font-size: 20px; margin-right: 12px;">💻</span>
-        <a href="${meetingLink}" style="color: #7c3aed; text-decoration: none;">Join Online Meeting</a>
+      <div style="margin-bottom: 12px;">
+        <p style="margin: 0; font-weight: 600; color: #6b7280; font-size: 12px;">MEETING LINK</p>
+        <a href="${meetingLink}" style="color: #7c3aed; text-decoration: none;">${meetingLink}</a>
       </div>
       ` : ''}
 
@@ -557,7 +524,7 @@ The JobAgency Team
     </div>
     ` : ''}
 
-    <p style="text-align: center; color: #059669; font-weight: 500;">Best of luck with your interview! 🍀</p>
+    <p style="text-align: center; color: #059669; font-weight: 500;">Best of luck with your interview!</p>
 
     <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
 
@@ -585,7 +552,7 @@ The JobAgency Team
  * Send new application received email to employer
  */
 const sendNewApplicationEmail = async (email, companyName, jobTitle, applicantName, applicationUrl) => {
-  const subject = `📬 New Application - ${applicantName} applied for ${jobTitle}`;
+  const subject = `New Application - ${applicantName} applied for ${jobTitle}`;
 
   const text = `
 Hello ${companyName},
@@ -614,10 +581,6 @@ The JobAgency Team
   </div>
 
   <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-    <div style="text-align: center; margin-bottom: 20px;">
-      <span style="font-size: 48px;">📬</span>
-    </div>
-
     <p>Hello ${companyName},</p>
 
     <p>You have received a new application for your job posting.</p>

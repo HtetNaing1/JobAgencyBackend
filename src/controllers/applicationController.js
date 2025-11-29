@@ -37,9 +37,6 @@ const uploadToCloudinary = (fileBuffer, folder, resourceType = 'auto') => {
   });
 };
 
-// @desc    Submit a job application
-// @route   POST /api/applications
-// @access  Private (Job Seeker)
 const submitApplication = async (req, res) => {
   try {
     const { jobId, coverLetterText, useProfileResume } = req.body;
@@ -219,9 +216,6 @@ const submitApplication = async (req, res) => {
   }
 };
 
-// @desc    Get job seeker's applications
-// @route   GET /api/applications
-// @access  Private (Job Seeker)
 const getJobSeekerApplications = async (req, res) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
@@ -281,9 +275,6 @@ const getJobSeekerApplications = async (req, res) => {
   }
 };
 
-// @desc    Get single application details
-// @route   GET /api/applications/:id
-// @access  Private
 const getApplicationById = async (req, res) => {
   try {
     const application = await Application.findById(req.params.id)
@@ -339,9 +330,6 @@ const getApplicationById = async (req, res) => {
   }
 };
 
-// @desc    Get applications for a specific job (Employer)
-// @route   GET /api/applications/job/:jobId
-// @access  Private (Employer)
 const getApplicationsForJob = async (req, res) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
@@ -406,9 +394,6 @@ const getApplicationsForJob = async (req, res) => {
   }
 };
 
-// @desc    Get all applications for employer
-// @route   GET /api/applications/employer
-// @access  Private (Employer)
 const getEmployerApplications = async (req, res) => {
   try {
     const { status, jobId, page = 1, limit = 20 } = req.query;
@@ -478,9 +463,6 @@ const getEmployerApplications = async (req, res) => {
   }
 };
 
-// @desc    Update application status
-// @route   PUT /api/applications/:id/status
-// @access  Private (Employer)
 const updateApplicationStatus = async (req, res) => {
   try {
     const { status, note } = req.body;
@@ -569,9 +551,6 @@ const updateApplicationStatus = async (req, res) => {
   }
 };
 
-// @desc    Bulk update application status
-// @route   PUT /api/applications/bulk-status
-// @access  Private (Employer)
 const bulkUpdateStatus = async (req, res) => {
   try {
     const { applicationIds, status, note } = req.body;
@@ -628,9 +607,6 @@ const bulkUpdateStatus = async (req, res) => {
   }
 };
 
-// @desc    Provide feedback on application
-// @route   POST /api/applications/:id/feedback
-// @access  Private (Employer)
 const provideFeedback = async (req, res) => {
   try {
     const { message, category } = req.body;
@@ -687,9 +663,6 @@ const provideFeedback = async (req, res) => {
   }
 };
 
-// @desc    Schedule interview
-// @route   POST /api/applications/:id/interview
-// @access  Private (Employer)
 const scheduleInterview = async (req, res) => {
   try {
     const { scheduledDate, location, meetingLink, notes } = req.body;
@@ -785,9 +758,6 @@ const scheduleInterview = async (req, res) => {
   }
 };
 
-// @desc    Withdraw application
-// @route   PUT /api/applications/:id/withdraw
-// @access  Private (Job Seeker)
 const withdrawApplication = async (req, res) => {
   try {
     const application = await Application.findById(req.params.id);
@@ -840,9 +810,6 @@ const withdrawApplication = async (req, res) => {
   }
 };
 
-// @desc    Check if user has applied to a job
-// @route   GET /api/applications/check/:jobId
-// @access  Private (Job Seeker)
 const checkApplication = async (req, res) => {
   try {
     const application = await Application.findOne({

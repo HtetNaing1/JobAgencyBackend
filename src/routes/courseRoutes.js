@@ -14,7 +14,8 @@ const {
   updateInquiryStatus,
   getCategories,
   getMyInquiryForCourse,
-  getUserInquiries
+  getUserInquiries,
+  recordCourseView
 } = require('../controllers/courseController');
 
 // Public routes
@@ -32,6 +33,7 @@ router.get('/user/inquiries', protect, authorize('jobseeker'), getUserInquiries)
 
 // Public course detail route - after /me/* and /user/* routes
 router.get('/:id', getCourseById);
+router.post('/:id/view', recordCourseView);
 
 // Protected routes for course management and inquiries
 router.post('/', protect, authorize('training_center'), createCourse);

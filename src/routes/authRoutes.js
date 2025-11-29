@@ -32,7 +32,10 @@ const registerValidation = [
   body('role')
     .optional()
     .isIn(['jobseeker', 'employer', 'training_center'])
-    .withMessage('Invalid role specified')
+    .withMessage('Invalid role specified'),
+  body('agreeToTerms')
+    .custom((value) => value === true || value === 'true')
+    .withMessage('You must agree to the Terms of Service and Privacy Policy')
 ];
 
 const loginValidation = [

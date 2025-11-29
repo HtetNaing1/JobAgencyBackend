@@ -1,8 +1,5 @@
 const { getJobRecommendations, getSimilarJobs } = require('../utils/jobRecommendation');
 
-// @desc    Get personalized job recommendations
-// @route   GET /api/recommendations
-// @access  Private (Job Seekers)
 exports.getRecommendations = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
@@ -23,9 +20,6 @@ exports.getRecommendations = async (req, res) => {
   }
 };
 
-// @desc    Get similar jobs to a specific job
-// @route   GET /api/recommendations/similar/:jobId
-// @access  Public
 exports.getSimilar = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 5;

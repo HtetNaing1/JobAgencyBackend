@@ -1,8 +1,5 @@
 const Notification = require('../models/Notification');
 
-// @desc    Get user notifications
-// @route   GET /api/notifications
-// @access  Private
 const getNotifications = async (req, res) => {
   try {
     const { page = 1, limit = 20, unreadOnly = false } = req.query;
@@ -43,9 +40,6 @@ const getNotifications = async (req, res) => {
   }
 };
 
-// @desc    Get unread notification count
-// @route   GET /api/notifications/unread-count
-// @access  Private
 const getUnreadCount = async (req, res) => {
   try {
     const count = await Notification.getUnreadCount(req.user._id);
@@ -63,9 +57,6 @@ const getUnreadCount = async (req, res) => {
   }
 };
 
-// @desc    Mark notification as read
-// @route   PUT /api/notifications/:id/read
-// @access  Private
 const markAsRead = async (req, res) => {
   try {
     const notification = await Notification.findOne({
@@ -99,9 +90,6 @@ const markAsRead = async (req, res) => {
   }
 };
 
-// @desc    Mark all notifications as read
-// @route   PUT /api/notifications/read-all
-// @access  Private
 const markAllAsRead = async (req, res) => {
   try {
     const result = await Notification.updateMany(
@@ -124,9 +112,6 @@ const markAllAsRead = async (req, res) => {
   }
 };
 
-// @desc    Delete a notification
-// @route   DELETE /api/notifications/:id
-// @access  Private
 const deleteNotification = async (req, res) => {
   try {
     const notification = await Notification.findOneAndDelete({
@@ -155,9 +140,6 @@ const deleteNotification = async (req, res) => {
   }
 };
 
-// @desc    Delete all notifications
-// @route   DELETE /api/notifications/all
-// @access  Private
 const deleteAllNotifications = async (req, res) => {
   try {
     const result = await Notification.deleteMany({ recipient: req.user._id });

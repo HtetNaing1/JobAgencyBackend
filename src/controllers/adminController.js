@@ -8,9 +8,6 @@ const TrainingCourse = require('../models/TrainingCourse');
 const CourseInquiry = require('../models/CourseInquiry');
 const { notifyEmployerBanned, notifyTrainingCenterBanned } = require('../utils/createNotification');
 
-// @desc    Get dashboard statistics
-// @route   GET /api/admin/dashboard
-// @access  Private/Admin
 exports.getDashboardStats = async (req, res) => {
   try {
     const [
@@ -103,9 +100,6 @@ exports.getDashboardStats = async (req, res) => {
   }
 };
 
-// @desc    Get all users with filters
-// @route   GET /api/admin/users
-// @access  Private/Admin
 exports.getUsers = async (req, res) => {
   try {
     const { role, isActive, search, page = 1, limit = 10 } = req.query;
@@ -172,9 +166,6 @@ exports.getUsers = async (req, res) => {
   }
 };
 
-// @desc    Update user status (activate/deactivate)
-// @route   PUT /api/admin/users/:id/status
-// @access  Private/Admin
 exports.updateUserStatus = async (req, res) => {
   try {
     const { isActive } = req.body;
@@ -212,9 +203,6 @@ exports.updateUserStatus = async (req, res) => {
   }
 };
 
-// @desc    Delete user
-// @route   DELETE /api/admin/users/:id
-// @access  Private/Admin
 exports.deleteUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -302,9 +290,6 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
-// @desc    Get all jobs for moderation
-// @route   GET /api/admin/jobs
-// @access  Private/Admin
 exports.getJobs = async (req, res) => {
   try {
     const { status, search, page = 1, limit = 10 } = req.query;
@@ -360,9 +345,6 @@ exports.getJobs = async (req, res) => {
   }
 };
 
-// @desc    Update job status
-// @route   PUT /api/admin/jobs/:id/status
-// @access  Private/Admin
 exports.updateJobStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -393,9 +375,6 @@ exports.updateJobStatus = async (req, res) => {
   }
 };
 
-// @desc    Delete job
-// @route   DELETE /api/admin/jobs/:id
-// @access  Private/Admin
 exports.deleteJob = async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
@@ -424,9 +403,6 @@ exports.deleteJob = async (req, res) => {
   }
 };
 
-// @desc    Get all training centers
-// @route   GET /api/admin/training-centers
-// @access  Private/Admin
 exports.getTrainingCenters = async (req, res) => {
   try {
     const { isVerified, search, page = 1, limit = 10 } = req.query;
@@ -485,9 +461,6 @@ exports.getTrainingCenters = async (req, res) => {
   }
 };
 
-// @desc    Verify/Unverify training center
-// @route   PUT /api/admin/training-centers/:id/verify
-// @access  Private/Admin
 exports.updateTrainingCenterVerification = async (req, res) => {
   try {
     const { isVerified } = req.body;
@@ -518,9 +491,6 @@ exports.updateTrainingCenterVerification = async (req, res) => {
   }
 };
 
-// @desc    Get analytics data
-// @route   GET /api/admin/analytics
-// @access  Private/Admin
 exports.getAnalytics = async (req, res) => {
   try {
     const { period = '30' } = req.query;

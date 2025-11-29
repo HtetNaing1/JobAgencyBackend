@@ -2,9 +2,6 @@ const Bookmark = require('../models/Bookmark');
 const Job = require('../models/Job');
 const TrainingCourse = require('../models/TrainingCourse');
 
-// @desc    Add a bookmark
-// @route   POST /api/bookmarks
-// @access  Private (Job Seekers only)
 exports.addBookmark = async (req, res) => {
   try {
     const { itemType, itemId } = req.body;
@@ -80,9 +77,6 @@ exports.addBookmark = async (req, res) => {
   }
 };
 
-// @desc    Remove a bookmark
-// @route   DELETE /api/bookmarks/:itemType/:itemId
-// @access  Private (Job Seekers only)
 exports.removeBookmark = async (req, res) => {
   try {
     const { itemType, itemId } = req.params;
@@ -121,9 +115,6 @@ exports.removeBookmark = async (req, res) => {
   }
 };
 
-// @desc    Get all bookmarks for current user
-// @route   GET /api/bookmarks
-// @access  Private (Job Seekers only)
 exports.getMyBookmarks = async (req, res) => {
   try {
     const { type, page = 1, limit = 10 } = req.query;
@@ -187,9 +178,6 @@ exports.getMyBookmarks = async (req, res) => {
   }
 };
 
-// @desc    Check if an item is bookmarked
-// @route   GET /api/bookmarks/check/:itemType/:itemId
-// @access  Private (Job Seekers only)
 exports.checkBookmark = async (req, res) => {
   try {
     const { itemType, itemId } = req.params;
@@ -221,9 +209,6 @@ exports.checkBookmark = async (req, res) => {
   }
 };
 
-// @desc    Toggle bookmark (add if not exists, remove if exists)
-// @route   POST /api/bookmarks/toggle
-// @access  Private (Job Seekers only)
 exports.toggleBookmark = async (req, res) => {
   try {
     const { itemType, itemId } = req.body;
@@ -302,9 +287,6 @@ exports.toggleBookmark = async (req, res) => {
   }
 };
 
-// @desc    Get bookmark IDs for quick checking
-// @route   GET /api/bookmarks/ids
-// @access  Private (Job Seekers only)
 exports.getBookmarkIds = async (req, res) => {
   try {
     const { type } = req.query;
