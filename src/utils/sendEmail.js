@@ -20,12 +20,31 @@ const sendEmail = async (options) => {
   const senderEmail = process.env.EMAIL_FROM_ADDRESS || 'noreply@jobagency.com';
   const senderName = process.env.EMAIL_FROM_NAME || 'JobAgency';
 
-  // Use SendGrid if configured, otherwise use Brevo
+  // Try SendGrid first, then fall back to Brevo. Preferring one and never
+  // retrying the other means a single dead provider (expired credits, a
+  // disabled key) silently blocks all mail even when the other one works.
+  const providers = [];
   if (sendgridKey) {
-    return sendWithSendGrid(options, sendgridKey, senderEmail, senderName);
-  } else {
-    return sendWithBrevo(options, brevoKey, senderEmail, senderName);
+    providers.push({ name: 'SendGrid', send: () => sendWithSendGrid(options, sendgridKey, senderEmail, senderName) });
   }
+  if (brevoKey) {
+    providers.push({ name: 'Brevo', send: () => sendWithBrevo(options, brevoKey, senderEmail, senderName) });
+  }
+
+  const failures = [];
+  for (const provider of providers) {
+    try {
+      return await provider.send();
+    } catch (error) {
+      failures.push(`${provider.name}: ${error.message}`);
+      console.error(`${provider.name} failed for ${options.to}: ${error.message}`);
+    }
+  }
+
+  const error = new Error(`All email providers failed. ${failures.join(' | ')}`);
+  error.code = 'EMAIL_SEND_FAILED';
+  error.failures = failures;
+  throw error;
 };
 
 const sendWithSendGrid = async (options, apiKey, senderEmail, senderName) => {
@@ -101,10 +120,13 @@ const sendWithBrevo = async (options, apiKey, senderEmail, senderName) => {
 };
 
 
-if (process.env.SENDGRID_API_KEY) {
-  console.log('Email service ready (SendGrid)');
-} else if (process.env.BREVO_API_KEY || process.env.SMTP_PASS) {
-  console.log('Email service ready (Brevo)');
+const configuredProviders = [
+  process.env.SENDGRID_API_KEY && 'SendGrid',
+  (process.env.BREVO_API_KEY || process.env.SMTP_PASS) && 'Brevo',
+].filter(Boolean);
+
+if (configuredProviders.length) {
+  console.log(`Email service ready (${configuredProviders.join(' -> ')})`);
 } else {
   console.warn('Email not configured: Set SENDGRID_API_KEY or BREVO_API_KEY');
 }
